@@ -1,9 +1,30 @@
 import { View, Text, ScrollView } from 'react-native'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Icon } from '@rneui/themed'
 import RestaurantCard from './RestaurantCard'
+import { client } from '../sanity';
 
-const FeaturedRow = ({ title, description }) => {
+const FeaturedRow = ({ id, title, description }) => {
+
+  const [restaurants, setRestaurants] = useState([])
+
+  useEffect(() => {
+    client.fetch(`
+      *[_type == "featured"] {
+        ...,
+        restaurants[] -> {
+          ...,
+          dishes[] ->,
+          type -> {
+            name
+          }
+        }
+      }`
+    ).then(data => {
+      setRestaurants(data[0].restaurants)
+    })
+  }, [])
+
   return (
     <View>
       <View className="flex-row items-center justify-between px-4 mt-4">
@@ -19,19 +40,23 @@ const FeaturedRow = ({ title, description }) => {
         showsHorizontalScrollIndicator={false}
         className="pt-4"
       >
-        <RestaurantCard
-          id="123"
-          imgUrl="https://links.papareact.com/gn7"
-          title="Yo! Sushi"
-          description="This is a description"
-          rating={4.5}
-          genre="Japanese"
-          address="123 Fake Street"
-          short_description="This is a short description"
-          dishes={[]}
-          long={0}
-          lat={0}
-        />
+        {restaurants?.map(restaurant => {
+          return (
+          <RestaurantCard
+            key={restaurant._id}
+            id={restaurant._id}
+            imgUrl={restaurant.image}
+            address={restaurant.address}
+            title={restaurant.name}
+            dishes={restaurant.dishes}
+            rating={restaurant.rating}
+            short_description={restaurant.short_description}
+            genre={restaurant.type?.name}
+            long={restaurant.long}
+            lat={restaurant.lat}
+          />
+        )})}
+
       </ScrollView>
     </View>
   )
